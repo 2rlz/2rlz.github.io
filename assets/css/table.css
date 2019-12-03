@@ -1,0 +1,43 @@
+﻿#changelog {
+display:none;
+}
+
+@media screen and (max-width: 760px) {
+#changelog {
+display:none;
+}
+}
+
+#update {
+display:none;
+}
+
+@media screen and (max-width: 760px) {
+#update {
+display:none;
+}
+}
+
+.state1 {
+  background-color: #ffc0cb;
+}
+
+.state2 {
+  background-color: #add8e6;
+}
+
+.state3 {
+  background-color: #90ee90;
+}
+
+.state4 {
+  background-color: #ffff00;
+}
+
+.state5 {
+  background-color: #808080;
+}
+
+.state6 {
+  background-color: #ffa500;
+}
