@@ -1,12 +1,36 @@
+// Table Load Message
+$(".tablesorter").append("<div id='tableLoading'>Loading...</div>");
+
 // Difficulty Table
-$(document).ready(function(){
-	$.getJSON($("meta[name=bmstable]").attr("content"), function(header){
-		$.getJSON(header.data_url, function(information){
-			makeBMSTable(information,header.symbol);
-			$(".tablesorter").tablesorter({sortList: [[0,0],[3,0]] });
-		});
-	});
+$(document).ready(function() {
+    $.getJSON($("meta[name=bmstable]").attr("content"), function(header) {
+        makeChangelog();
+        $.getJSON(header.data_url, function(information) {
+            makeBMSTable(information, header.symbol);
+            $("#tableLoading").remove();
+            $(".tablesorter").tablesorter({
+                sortList: [
+                    [0, 0],
+                    [3, 0]
+                ]
+            });
+        });
+    });
 });
+
+// Changelog
+function makeChangelog() {
+    $("#changelog").load("Change.txt");
+    $("#show_log").click(function() {
+        if ($("#changelog").css("display") == "none" && $(this).html() == "VIEW CHANGELOG") {
+            $("#changelog").show(300);
+            $(this).html("HIDE CHANGELOG");
+        } else {
+            $("#changelog").hide(300);
+            $(this).html("VIEW CHANGELOG");
+        }
+    });
+}
 
 function makeBMSTable(info, mark) {
     var x = "";
@@ -15,6 +39,7 @@ function makeBMSTable(info, mark) {
     var obj = $("#table_int");
     // Table Clear
     obj.html("");
+    $("<thead><tr><th width='1%'>Lv <i class='fas fa-arrows-alt-v'></i></th><th width='1%'>Movie</th><th width='1%'>Score</th><th width='30%'>Title <i class='fas fa-arrows-alt-v'></i></th><th width='10%'>Artist <i class='fas fa-arrows-alt-v'></i></th><th width='1%'>DL</th><th width='1%'>Date <i class='fas fa-arrows-alt-v'></i></th><th width='10%'>Comment <i class='fas fa-arrows-alt-v'></i></th></tr></thead><tbody></tbody>").appendTo(obj);
     var obj_sep = null;
     for (var i = 0; i < info.length; i++) {
         if (x != info[i].level) {
@@ -113,7 +138,7 @@ function makeBMSTable(info, mark) {
             $("<td width='1%'></td>").appendTo(str);
         }
         // Comment
-        $("<td width='10%'>" + info[i].comment + "</div></td>").appendTo(str);
+        $("<td width='10%'>" + info[i].comment + "</td>").appendTo(str);
         str.appendTo(obj);
         count++;
     }

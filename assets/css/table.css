@@ -1,43 +1,47 @@
 ﻿#changelog {
-display:none;
+    display: none;
+}
+
+#tableLoading {
+    text-align: center
 }
 
 @media screen and (max-width: 760px) {
-#changelog {
-display:none;
-}
+    #changelog {
+        display: none;
+    }
 }
 
 #update {
-display:none;
+    display: none;
 }
 
 @media screen and (max-width: 760px) {
-#update {
-display:none;
-}
+    #update {
+        display: none;
+    }
 }
 
 .state1 {
-  background-color: #ffc0cb;
+    background-color: #ffc0cb;
 }
 
 .state2 {
-  background-color: #add8e6;
+    background-color: #add8e6;
 }
 
 .state3 {
-  background-color: #90ee90;
+    background-color: #90ee90;
 }
 
 .state4 {
-  background-color: #ffff00;
+    background-color: #ffff00;
 }
 
 .state5 {
-  background-color: #808080;
+    background-color: #808080;
 }
 
 .state6 {
-  background-color: #2793e6bd;
+    background-color: #2793e6bd;
 }
