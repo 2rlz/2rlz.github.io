@@ -1,402 +1,252 @@
 // Difficulty Table
-let mark = "";
-let data_link = "";
-let isSabunPage = window.location.href.indexOf("info");
-document.addEventListener("DOMContentLoaded", function () {
-  async function getJSON() {
-    const response = await fetch(
-      document.querySelector("meta[name=bmstable]").getAttribute("content"),
-    );
-    const header = await response.json();
-    document.getElementById("changelogText").value = "Loading...";
-    document.getElementById("smallTableTitle").innerHTML =
-      "<i class='fa-solid fa-table me-2'></i>" + header.name;
-    if (header.symbol) mark = header.symbol;
-    if (header.data_url) data_link = header.data_url;
-    if (header.level_order) {
-      const enumOrder = header.level_order.map((e) => mark + e);
-      DataTable.enum(enumOrder);
-    }
-    makeBMSTable();
-  }
-  if (document.querySelector("meta[name=bmstable]")) getJSON();
+$(function () {
+  // Table Load Message
+  $("#table_int").before("<div id='tableLoading'>Loading...</div>");
+  $.getJSON($("meta[name=bmstable]").attr("content"), function (header) {
+    $.getJSON(header.data_url, function (info) {
+      makeChangelog(info, header.symbol);
+      makeAUTOPLAY(info);
+      makeBMSTable(info, header.symbol);
+      $("#tableLoading").hide();
+      $("#table_int").tablesorter({
+        sortList: [
+          [0, 0],
+          [3, 0],
+        ],
+      });
+    });
+  });
 });
 
-// BMS table
-function makeBMSTable() {
-  let bmsTable = new DataTable("#tableDiff", {
-    paging: false,
+function makeBMSTable(info, mark) {
+  var obj = $("#table_int");
+  // Table Clear
+  obj.html("");
+  $(
+    "<thead>" +
+      "<tr>" +
+      "<th style='width: 1%'>Lv <i class='fas fa-arrows-alt-v'></i></th>" +
+      "<th style='width: 1%'>Movie</th>" +
+      "<th style='width: 1%'>Score</th>" +
+      "<th style='width: 30%'>Title <i class='fas fa-arrows-alt-v'></i></th>" +
+      "<th style='width: 10%'>Artist <i class='fas fa-arrows-alt-v'></i></th>" +
+      "<th style='width: 1%'>DL</th>" +
+      "<th style='width: 1%'>Date <i class='fas fa-arrows-alt-v'></i></th>" +
+      "<th style='width: 10%'>Comment <i class='fas fa-arrows-alt-v'></i></th>" +
+      "</tr>" +
+      "</thead>" +
+      "<tbody></tbody>"
+  ).appendTo(obj);
+  Array.prototype.forEach.call(info, function (i) {
+    // Main text
+    var str = $("<tr class='tr_normal'></tr>");
+    if (i.state == 1) str = $("<tr class='state1'></tr>");
+    if (i.state == 2) str = $("<tr class='state2'></tr>");
+    if (i.state == 3) str = $("<tr class='state3'></tr>");
+    if (i.state == 4) str = $("<tr class='state4'></tr>");
+    if (i.state == 5) str = $("<tr class='state5'></tr>");
+    if (i.state == 6) str = $("<tr class='state6'></tr>");
+    // Level
+    $("<td>" + mark + i.level + "</a></td>").appendTo(str);
+    // AUTOPLAY Movie
+    if (i.movie_link) {
+      $(
+        "<td><a href='" +
+          i.movie_link +
+          "' class='fas fa-lg fa-play' target='_blank'></a></td>"
+      ).appendTo(str);
+    } else {
+      $("<td></td>").appendTo(str);
+    }
+    // View Pattern
+    $(
+      "<td><a href='https://bms-score-viewer.pages.dev/view?md5=" +
+        i.md5 +
+        "' class='fas fa-lg fa-music' target='_blank'></a></td>"
+    ).appendTo(str);
 
-    layout: {
-      bottomStart:
-        isSabunPage == -1
-          ? {
-              info: {
-                text:
-                  languagePrefix === "ko"
-                    ? "(검색된) 차분 갯수: _TOTAL_개"
-                    : "（検索された）差分数: _TOTAL_",
-              },
-            }
-          : null,
-    },
-
-    language: {
-      url: `//cdn.datatables.net/plug-ins/2.3.7/i18n/${languagePrefix}.json`,
-    },
-
-    ajax: {
-      url: data_link,
-      dataSrc: "",
-    },
-
-    columns:
-      typeof tableColumns === "undefined" ? defaultColumns : tableColumns,
-
-    createdRow: function (row, data) {
-      const rowColor = {
-        1: "bg-primary-subtle",
-        2: "bg-warning-subtle",
-        3: "bg-success-subtle",
-        4: "bg-secondary-subtle",
-        5: "bg-info-subtle",
-      };
-      if (data.state) row.classList.add(rowColor[data.state]);
-    },
-
-    initComplete: function () {
-      if (isSabunPage == -1) {
-        // Make Changelog
-        makeChangelog(bmsTable);
-        // Filter
-        makeFilter(bmsTable);
-        // Tooltips
-        const tooltipTriggerList = document.querySelectorAll(
-          "[data-bs-toggle='tooltip']",
-        );
-        const tooltipList = [...tooltipTriggerList].map(
-          (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl),
-        );
-      }
-    },
-  });
-}
-
-// Changelog
-function makeChangelog(table) {
-  const data = table.ajax.json();
-  // Special Date
-  const blogOpen = {
-    date: "Sat Sep 08 2018 00:00:00 GMT+0900 (JST)",
-    title: "Sabun Blog Open.",
-    state: "special",
-  };
-  const siteMove1 = {
-    date: "Thu Feb 28 2019 00:00:00 GMT+0900 (JST)",
-    title: "Site Moved.",
-    state: "special",
-  };
-  const siteMove2 = {
-    date: "Thu May 02 2019 00:00:00 GMT+0900 (JST)",
-    title: "Site Moved.",
-    state: "special",
-  };
-  const domainTransfer1 = {
-    date: "Fri Aug 15 2025 00:00:00 GMT+0900 (JST)",
-    title: "Domain Transferred. (bms.parksulab.xyz → parksu.darksabun.club)",
-    state: "special",
-  };
-  data.push(blogOpen, siteMove1, siteMove2, domainTransfer1);
-  data.sort((a, b) => new Date(b.date) - new Date(a.date));
-  const changelogData = data
-    .map(function (song) {
-      const dateStr = formatDateString(song.date);
-      if (song.state == "special") {
-        return `(${dateStr}) ${song.title}`;
+    // Title
+    $(
+      "<td>" +
+        "<a href='https://mocha-repository.info/song.php?sha256=" +
+        i.sha256 +
+        "' target='_blank'>" +
+        i.title +
+        "</a></td>"
+    ).appendTo(str);
+    // Artist (Package Link)
+    var astr = "";
+    if (i.url) {
+      if (i.artist) {
+        astr = "<a href='" + i.url + "'>" + i.artist + "</a>";
       } else {
-        return `(${dateStr}) ${mark}${song.level} ${song.title} Added.`;
+        astr = "<a href='" + i.url + "'>" + i.url + "</a>";
       }
-    })
-    .join("\n");
-  document.getElementById("changelogText").value = changelogData;
+    } else {
+      if (i.artist) {
+        astr = i.artist;
+      }
+    }
+    if (i.url_pack) {
+      if (i.name_pack) {
+        astr += "<br>(<a href='" + i.url_pack + "'>" + i.name_pack + "</a>)";
+      } else {
+        astr += "<br>(<a href='" + i.url_pack + "'>" + i.url_pack + "</a>)";
+      }
+    } else {
+      if (i.name_pack) {
+        astr += "<br>(" + i.name_pack + ")";
+      }
+    }
+    $("<td>" + astr + "</td>").appendTo(str);
+    // Pattern Download
+    if (i.url_diff) {
+      if (i.name_diff) {
+        $(
+          "<td><a href='" + i.url_diff + "'>" + i.name_diff + "</a></td>"
+        ).appendTo(str);
+      } else {
+        $(
+          "<td><a href='" +
+            i.url_diff +
+            "' class='fas fa-lg fa-arrow-down'></a></td>"
+        ).appendTo(str);
+      }
+    } else {
+      if (i.name_diff) {
+        $("<td>" + i.name_diff + "</td>").appendTo(str);
+      } else {
+        $("<td>同梱</td>").appendTo(str);
+      }
+    }
+    // Added Date
+    if (i.date) {
+      var addDate = new Date(i.date);
+      var dateStr =
+        addDate.getFullYear() +
+        "." +
+        ("0" + (addDate.getMonth() + 1)).slice(-2) +
+        "." +
+        ("0" + addDate.getDate()).slice(-2);
+      $("<td>" + dateStr + "</td>").appendTo(str);
+    } else {
+      $("<td></td>").appendTo(str);
+    }
+    // Comment
+    $("<td>" + i.comment + "</td>").appendTo(str);
+    str.appendTo(obj);
+  });
 }
 
-// Make Filter
-function makeFilter(table) {
-  const column = table.column(0);
-  const filterText =
-    languagePrefix === "ko" ? "레벨별 필터: " : "レベルでフィルタ: ";
-
-  const selectContainer = document.createElement("div");
-  selectContainer.classList.add("dt-length");
-
-  const select = document.createElement("select");
-  select.classList.add("form-select", "form-select-sm");
-  select.add(new Option("All", ""));
-
-  select.addEventListener("change", function () {
-    const val = DataTable.util.escapeRegex(this.value);
-    column.search(val ? "^" + val + "$" : "", true, false).draw();
+function makeChangelog(info) {
+  var $changelog = $("#changelog");
+  var $show_log = $("#show_log");
+  $show_log.click(function () {
+    if (
+      $changelog.css("display") == "none" &&
+      $show_log.html() == "VIEW CHANGELOG"
+    ) {
+      $changelog.show(300);
+      $show_log.html("HIDE CHANGELOG");
+    } else {
+      $changelog.hide(300);
+      $show_log.html("VIEW CHANGELOG");
+    }
   });
-
-  selectContainer.appendChild(document.createTextNode(filterText));
-  selectContainer.appendChild(select);
-
-  document
-    .querySelector("#tableDiff_wrapper > div > .dt-layout-start")
-    .prepend(selectContainer);
-
-  column
-    .data()
-    .unique()
-    .sort(function (a, b) {
-      // a - b = asc, b - a = desc
-      return parseInt(a) - parseInt(b);
+  var history = info
+    .filter(function (i) {
+      return !!i.date;
     })
-    .each(function (d, j) {
-      const option = document.createElement("option");
-      option.value = mark + d;
-      option.textContent = d;
-      select.appendChild(option);
+    .sort(function (a, b) {
+      var aDate = new Date(a.date);
+      var bDate = new Date(b.date);
+      return aDate < bDate ? 1 : aDate > bDate ? -1 : 0;
+    })
+    .map(function (i) {
+      var date_ = new Date(i.date);
+      var dateStr =
+        ("" + date_.getFullYear()).slice(-2) +
+        "." +
+        ("0" + (date_.getMonth() + 1)).slice(-2) +
+        "." +
+        ("0" + date_.getDate()).slice(-2);
+      return "(" + dateStr + ")\n" + i.artist + " - " + i.title + " was added.";
+    })
+    .join("\n\n");
+  $show_log.show();
+  $changelog.val(history);
+}
+
+// AUTOPLAY List
+function makeAUTOPLAY(info) {
+  var videoObj = $("#video_int");
+  videoObj.html("");
+  info
+    .filter(function (song) {
+      return !!song.date && !!song.movie_link;
+    })
+    .sort(function (a, b) {
+      var aDate = new Date(a.date);
+      var bDate = new Date(b.date);
+      return aDate < bDate ? 1 : aDate > bDate ? -1 : 0;
+    })
+    .slice(0, 4)
+    .map(function (i) {
+      var str = $("<blockquote></blockquote>");
+      if (i.title) {
+        $(
+          "<h3><span class='icon solid major brands fa-youtube'> " +
+            i.title +
+            "</span></h3>"
+        ).appendTo(str);
+      } else {
+        $("<h3><span>Nothing</span></h3>").appendTo(str);
+      }
+      if (i.movie_link) {
+        $(
+          "<div class='video_wrap'>" +
+            "<iframe class='video_iframe' src='https://www.youtube.com/embed/" +
+            i.movie_link.slice(-11) +
+            "' srcdoc='" +
+            "<style>" +
+            "* {" +
+            "padding: 0;" +
+            "margin: 0;" +
+            "overflow: hidden" +
+            "}" +
+            "html,body {" +
+            "height: 100%" +
+            "}" +
+            "img,span {" +
+            "position: absolute;" +
+            "width: 100%;" +
+            "top: 0;" +
+            "bottom: 0;" +
+            "margin: auto" +
+            "}" +
+            "span {" +
+            "height: 1.5em;" +
+            "text-align: center;" +
+            "font: 48px/1.5 sans-serif;" +
+            "color: white;" +
+            "text-shadow: 0 0 0.5em black" +
+            "}" +
+            "</style>" +
+            "<a href=https://www.youtube.com/embed/" +
+            i.movie_link.slice(-11) +
+            "?autoplay=1>" +
+            "<img src=https://img.youtube.com/vi/" +
+            i.movie_link.slice(-11) +
+            "/hqdefault.jpg>" +
+            "<span>▶</span>" +
+            "</a>" +
+            "' frameborder='0' allow='accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture' allowfullscreen>" +
+            "</iframe>" +
+            "</div>"
+        ).appendTo(str);
+      } else {
+        $("<div>Nothing</div>").appendTo(str);
+      }
+      str.appendTo(videoObj);
     });
 }
-
-// Date Format
-function formatDateString(dateStr) {
-  const date_ = new Date(dateStr);
-  const year = date_.getFullYear();
-  const month = String(date_.getMonth() + 1).padStart(2, "0");
-  const day = String(date_.getDate()).padStart(2, "0");
-  return `${year}.${month}.${day}`;
-}
-
-const tableData = {
-  tableLevel: function (data) {
-    return mark + data;
-  },
-
-  tableMochaIR: function (data) {
-    let MochaIrUrl = "https://mocha-repository.info/song.php?sha256=";
-    MochaIrUrl += data;
-    return `<a href='${MochaIrUrl}' target='_blank'>Mocha</a>`;
-  },
-
-  tableTitle: function (data, type, row) {
-    let MinIrUrl = `https://www.gaftalk.com/minir/#/viewer/song/${row.sha256}/0`;
-    return `<a href='${MinIrUrl}' target='_blank'>${data}</a>`;
-  },
-
-  tableScore: function (data) {
-    let scoreURL = "https://bms-score-viewer.pages.dev/view?md5=";
-    scoreURL += data;
-    if (data) {
-      return `<a href='${scoreURL}' target='_blank'>
-                <i class='fa-solid fa-music fa-lg'></i>
-              </a>`;
-    } else {
-      return "";
-    }
-  },
-
-  tableMovie: function (data) {
-    let movieURL = "https://www.youtube.com/watch?v=";
-    if (data) {
-      movieURL += data.slice(-11);
-      return `<a href='${movieURL}' target='_blank'>
-                <i class='fa-solid fa-play fa-lg'></i>
-              </a>`;
-    } else {
-      return "";
-    }
-  },
-
-  tableArtist: function (data, type, row) {
-    let artistStr = "";
-    if (row.url) {
-      artistStr = `<a href='${row.url}' target='_blank'>${data || row.url}</a>`;
-    }
-    if (row.url_pack) {
-      if (row.name_pack) {
-        artistStr += `<br />(<a href='${row.url_pack}' target='_blank'>${row.name_pack}</a>)`;
-      } else {
-        artistStr += `<br />(<a href='${row.url_pack}' target='_blank'>${row.url_pack}</a>)`;
-      }
-    } else if (row.name_pack) {
-      artistStr += `<br />(${row.name_pack})`;
-    }
-    return artistStr;
-  },
-
-  tableDate: function (data) {
-    if (data) {
-      return formatDateString(data);
-    } else {
-      return "";
-    }
-  },
-
-  // Chart Download
-  tableChart: function (data, type, row) {
-    if (row.url_diff) {
-      if (data) {
-        return `<a href='${row.url_diff}' target='_blank'>${data}</a>`;
-      } else {
-        return `<a href='${row.url_diff}'>
-                  <i class='fa-solid fa-download fa-lg'></i>
-                </a>`;
-      }
-    } else {
-      if (data) {
-        return data;
-      } else {
-        if (languagePrefix === "ko") {
-          return "동봉";
-        } else {
-          return "同梱";
-        }
-      }
-    }
-  },
-
-  // Total, Notes, Gauge
-  tableGauge: function (data, type, row) {
-    let gaugeCaculate, totalNotesStr, textColor, gaugeText, judgeRankText;
-
-    if (row.judge) {
-      const judgeRank = {
-        ve: "V.EASY<br />(if LR2, NORMAL)",
-        ez: "EASY",
-        nm: "NORMAL",
-        hd: "HARD",
-        vh: "V.HARD",
-        ran: "???",
-        none: "???<br />(if LR2, NORMAL)",
-      };
-      judgeRankText = "Judge Rank: " + judgeRank[row.judge];
-    }
-
-    if (row.notes === "ran" && row.total === "ran") {
-      gaugeCaculate = "???";
-      totalNotesStr = "Notes: ???<br />Total: ???<br />" + judgeRankText;
-    } else if (row.notes === "ran") {
-      gaugeCaculate = "???";
-      totalNotesStr =
-        "Notes: ???<br />Total: " + row.total + "<br />" + judgeRankText;
-    } else if (row.total === "0") {
-      const notes = Number(row.notes);
-
-      if (notes < 400) {
-        row.total = 0.16 * notes + 160;
-      } else if (notes >= 400 && notes < 600) {
-        row.total = 0.32 * notes + 96;
-      } else {
-        row.total = 0.16 * notes + 192;
-      }
-
-      gaugeCaculate = Math.floor((Number(row.total) / notes) * 1000) / 1000;
-      totalNotesStr = `Notes: ${row.notes}<br />Total: 0<br />${judgeRankText}<br />(Based on LR2 gauge calculation formula)`;
-    } else {
-      gaugeCaculate =
-        Math.floor((Number(row.total) / Number(row.notes)) * 1000) / 1000;
-      totalNotesStr = `Notes: ${row.notes}<br />Total: ${row.total}<br />${judgeRankText}`;
-    }
-
-    if (gaugeCaculate < 0.18) {
-      textColor = "text-danger";
-    } else if (gaugeCaculate > 0.25) {
-      textColor = "text-primary";
-    } else {
-      textColor = "";
-    }
-
-    gaugeText = `<span class='${textColor}'
-                    data-bs-toggle='tooltip'
-                    data-bs-html='true'
-                    title='${totalNotesStr}'>
-                      ${gaugeCaculate}
-                </span>`;
-
-    return gaugeText;
-  },
-
-  // Comment
-  tableComment: function (data, type, row) {
-    if (getLanguage.slice(0, 2) === "ko") {
-      return row.comment_ko;
-    } else {
-      return row.comment;
-    }
-  },
-};
-
-const defaultColumns = [
-  {
-    title: "Level",
-    width: "5.75%",
-    data: "level",
-    render: tableData.tableLevel,
-  },
-  {
-    title: "<i class='fa-solid fa-music fa-lg'></i>",
-    width: "1%",
-    data: "md5",
-    orderable: false,
-    searchable: false,
-    render: tableData.tableScore,
-  },
-  {
-    title: "<i class='fa-solid fa-play fa-lg'></i>",
-    width: "1%",
-    data: "movie_link",
-    orderable: false,
-    searchable: false,
-    render: tableData.tableMovie,
-  },
-  {
-    title: "Mocha",
-    width: "1%",
-    data: "sha256",
-    orderable: false,
-    searchable: false,
-    render: tableData.tableMochaIR,
-  },
-  {
-    title: "Title<br />(MinIR)",
-    width: "30%",
-    data: "title",
-    render: tableData.tableTitle,
-  },
-  {
-    title: "Artist<br />(BMS DL)",
-    width: "30%",
-    data: "artist",
-    render: tableData.tableArtist,
-  },
-  {
-    title: "DL",
-    width: "1%",
-    data: "name_diff",
-    className: "text-nowrap one-percent-column",
-    orderable: false,
-    render: tableData.tableChart,
-  },
-  {
-    title: "Date",
-    width: "5%",
-    data: "date",
-    className: "text-center five-percent-column font-monospace-custom",
-    render: tableData.tableDate,
-  },
-  {
-    title: languagePrefix === "ko" ? "회복량<br />(T/N)" : "回復量<br />(T/N)",
-    width: "1%",
-    orderable: false,
-    className: "text-nowrap one-percent-column font-monospace-custom",
-    render: tableData.tableGauge,
-  },
-  {
-    title: "Comment",
-    width: "30%",
-    render: tableData.tableComment,
-  },
-];
