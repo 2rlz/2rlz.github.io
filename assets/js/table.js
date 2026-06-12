@@ -68,7 +68,7 @@ function makeBMSTable(info, mark) {
     // Title
     $(
       "<td>" +
-        "<a href='http://www.dream-pro.info/~lavalse/LR2IR/search.cgi?mode=ranking&bmsmd5=" +
+        "<a href='https://mocha-repository.info/song.php?sha256=" +
         i.md5 +
         "' target='_blank'>" +
         i.title +
