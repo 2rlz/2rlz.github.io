@@ -1,252 +1,275 @@
 // Difficulty Table
+let mark = "";
+let data_link = "";
+const nowLang = navigator.language.slice(0, 2);
+const languagePrefix =
+  nowLang === "ko" ? "ko" : nowLang === "ja" ? "ja" : "en-GB";
 $(function () {
-  // Table Load Message
-  $("#table_int").before("<div id='tableLoading'>Loading...</div>");
-  $.getJSON($("meta[name=bmstable]").attr("content"), function (header) {
-    $.getJSON(header.data_url, function (info) {
-      makeChangelog(info, header.symbol);
-      makeAUTOPLAY(info);
-      makeBMSTable(info, header.symbol);
-      $("#tableLoading").hide();
-      $("#table_int").tablesorter({
-        sortList: [
-          [0, 0],
-          [3, 0],
-        ],
-      });
-    });
-  });
+  async function getJSON() {
+    const response = await fetch(
+      document.querySelector("meta[name=bmstable]").getAttribute("content")
+    );
+    const header = await response.json();
+    document.getElementById("changelogText").value = "Loading...";
+    if (header.symbol) mark = header.symbol;
+    if (header.data_url) data_link = header.data_url;
+    if (header.enum_level_order) DataTable.enum(header.enum_level_order);
+    makeBMSTable();
+  }
+  if (document.querySelector("meta[name=bmstable]")) getJSON();
 });
 
-function makeBMSTable(info, mark) {
-  var obj = $("#table_int");
-  // Table Clear
-  obj.html("");
-  $(
-    "<thead>" +
-      "<tr>" +
-      "<th style='width: 1%'>Lv <i class='fas fa-arrows-alt-v'></i></th>" +
-      "<th style='width: 1%'>Movie</th>" +
-      "<th style='width: 1%'>Score</th>" +
-      "<th style='width: 30%'>Title <i class='fas fa-arrows-alt-v'></i></th>" +
-      "<th style='width: 10%'>Artist <i class='fas fa-arrows-alt-v'></i></th>" +
-      "<th style='width: 1%'>DL</th>" +
-      "<th style='width: 1%'>Date <i class='fas fa-arrows-alt-v'></i></th>" +
-      "<th style='width: 10%'>Comment <i class='fas fa-arrows-alt-v'></i></th>" +
-      "</tr>" +
-      "</thead>" +
-      "<tbody></tbody>"
-  ).appendTo(obj);
-  Array.prototype.forEach.call(info, function (i) {
-    // Main text
-    var str = $("<tr class='tr_normal'></tr>");
-    if (i.state == 1) str = $("<tr class='state1'></tr>");
-    if (i.state == 2) str = $("<tr class='state2'></tr>");
-    if (i.state == 3) str = $("<tr class='state3'></tr>");
-    if (i.state == 4) str = $("<tr class='state4'></tr>");
-    if (i.state == 5) str = $("<tr class='state5'></tr>");
-    if (i.state == 6) str = $("<tr class='state6'></tr>");
-    // Level
-    $("<td>" + mark + i.level + "</a></td>").appendTo(str);
-    // AUTOPLAY Movie
-    if (i.movie_link) {
-      $(
-        "<td><a href='" +
-          i.movie_link +
-          "' class='fas fa-lg fa-play' target='_blank'></a></td>"
-      ).appendTo(str);
-    } else {
-      $("<td></td>").appendTo(str);
-    }
-    // View Pattern
-    $(
-      "<td><a href='https://bms-score-viewer.pages.dev/view?md5=" +
-        i.md5 +
-        "' class='fas fa-lg fa-music' target='_blank'></a></td>"
-    ).appendTo(str);
+// BMS table
+function makeBMSTable() {
+  let bmsTable = new DataTable("#tableDiff", {
+    paging: false,
+    info: false,
+    lengthChange: false,
 
-    // Title
-    $(
-      "<td>" +
-        "<a href='https://mocha-repository.info/song.php?sha256=" +
-        i.md5 +
-        "' target='_blank'>" +
-        i.title +
-        "</a></td>"
-    ).appendTo(str);
-    // Artist (Package Link)
-    var astr = "";
-    if (i.url) {
-      if (i.artist) {
-        astr = "<a href='" + i.url + "'>" + i.artist + "</a>";
-      } else {
-        astr = "<a href='" + i.url + "'>" + i.url + "</a>";
-      }
-    } else {
-      if (i.artist) {
-        astr = i.artist;
-      }
-    }
-    if (i.url_pack) {
-      if (i.name_pack) {
-        astr += "<br>(<a href='" + i.url_pack + "'>" + i.name_pack + "</a>)";
-      } else {
-        astr += "<br>(<a href='" + i.url_pack + "'>" + i.url_pack + "</a>)";
-      }
-    } else {
-      if (i.name_pack) {
-        astr += "<br>(" + i.name_pack + ")";
-      }
-    }
-    $("<td>" + astr + "</td>").appendTo(str);
-    // Pattern Download
-    if (i.url_diff) {
-      if (i.name_diff) {
-        $(
-          "<td><a href='" + i.url_diff + "'>" + i.name_diff + "</a></td>"
-        ).appendTo(str);
-      } else {
-        $(
-          "<td><a href='" +
-            i.url_diff +
-            "' class='fas fa-lg fa-arrow-down'></a></td>"
-        ).appendTo(str);
-      }
-    } else {
-      if (i.name_diff) {
-        $("<td>" + i.name_diff + "</td>").appendTo(str);
-      } else {
-        $("<td>同梱</td>").appendTo(str);
-      }
-    }
-    // Added Date
-    if (i.date) {
-      var addDate = new Date(i.date);
-      var dateStr =
-        addDate.getFullYear() +
-        "." +
-        ("0" + (addDate.getMonth() + 1)).slice(-2) +
-        "." +
-        ("0" + addDate.getDate()).slice(-2);
-      $("<td>" + dateStr + "</td>").appendTo(str);
-    } else {
-      $("<td></td>").appendTo(str);
-    }
-    // Comment
-    $("<td>" + i.comment + "</td>").appendTo(str);
-    str.appendTo(obj);
+    language: {
+      url: `//cdn.datatables.net/plug-ins/2.3.3/i18n/${languagePrefix}.json`,
+    },
+
+    ajax: {
+      url: data_link,
+      dataSrc: "",
+    },
+
+    columns:
+      typeof tableColumns === "undefined" ? defaultColumns : tableColumns,
+
+    createdRow: function (row, data) {
+      const rowColor = {
+        1: "state1",
+        2: "state2",
+        3: "state3",
+      };
+      if (data.state) row.classList.add(rowColor[data.state]);
+    },
+
+    initComplete: function () {
+      // Make Changelog
+      makeChangelog(bmsTable);
+      // Filter
+      makeFilter(bmsTable);
+    },
   });
 }
 
-function makeChangelog(info) {
-  var $changelog = $("#changelog");
-  var $show_log = $("#show_log");
-  $show_log.click(function () {
-    if (
-      $changelog.css("display") == "none" &&
-      $show_log.html() == "VIEW CHANGELOG"
-    ) {
-      $changelog.show(300);
-      $show_log.html("HIDE CHANGELOG");
-    } else {
-      $changelog.hide(300);
-      $show_log.html("VIEW CHANGELOG");
-    }
-  });
-  var history = info
-    .filter(function (i) {
-      return !!i.date;
+// Changelog
+function makeChangelog(table) {
+  const data = table.ajax.json();
+  // Special Date
+  const blogOpen = {
+    date: "Wed Dec 04 2019 00:00:00 GMT+0900 (JST)",
+    title: "Site Open. 過去差分の修正本 Uploaded.",
+    state: "special",
+  };
+  data.push(blogOpen);
+  data.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const changelogData = data
+    .map(function (song) {
+      const dateStr = formatDateString(song.date);
+      if (song.state == "special") {
+        return `(${dateStr}) ${song.title}`;
+      } else {
+        return `(${dateStr}) ${mark}${song.level} ${song.title}`;
+      }
     })
-    .sort(function (a, b) {
-      var aDate = new Date(a.date);
-      var bDate = new Date(b.date);
-      return aDate < bDate ? 1 : aDate > bDate ? -1 : 0;
-    })
-    .map(function (i) {
-      var date_ = new Date(i.date);
-      var dateStr =
-        ("" + date_.getFullYear()).slice(-2) +
-        "." +
-        ("0" + (date_.getMonth() + 1)).slice(-2) +
-        "." +
-        ("0" + date_.getDate()).slice(-2);
-      return "(" + dateStr + ")\n" + i.artist + " - " + i.title + " was added.";
-    })
-    .join("\n\n");
-  $show_log.show();
-  $changelog.val(history);
+    .join("\n");
+  document.getElementById("changelogText").value = changelogData;
 }
 
-// AUTOPLAY List
-function makeAUTOPLAY(info) {
-  var videoObj = $("#video_int");
-  videoObj.html("");
-  info
-    .filter(function (song) {
-      return !!song.date && !!song.movie_link;
-    })
+// Make Filter
+function makeFilter(table) {
+  const column = table.column(0);
+  const filterText =
+    languagePrefix === "ko"
+      ? "레벨별 필터: "
+      : languagePrefix === "ja"
+      ? "レベルでフィルタ: "
+      : "Filter by Level: ";
+
+  const selectContainer = document.createElement("div");
+  selectContainer.classList.add("dt-length");
+
+  const select = document.createElement("select");
+  select.add(new Option("All", ""));
+
+  select.addEventListener("change", function () {
+    const val = DataTable.util.escapeRegex(this.value);
+    column.search(val ? "^" + val + "$" : "", true, false).draw();
+  });
+
+  selectContainer.appendChild(document.createTextNode(filterText));
+  selectContainer.appendChild(select);
+
+  document
+    .querySelector("#tableDiff_wrapper > div > .dt-layout-start")
+    .prepend(selectContainer);
+
+  column
+    .data()
+    .unique()
     .sort(function (a, b) {
-      var aDate = new Date(a.date);
-      var bDate = new Date(b.date);
-      return aDate < bDate ? 1 : aDate > bDate ? -1 : 0;
+      // a - b = asc, b - a = desc
+      return parseInt(a) - parseInt(b);
     })
-    .slice(0, 4)
-    .map(function (i) {
-      var str = $("<blockquote></blockquote>");
-      if (i.title) {
-        $(
-          "<h3><span class='icon solid major brands fa-youtube'> " +
-            i.title +
-            "</span></h3>"
-        ).appendTo(str);
-      } else {
-        $("<h3><span>Nothing</span></h3>").appendTo(str);
-      }
-      if (i.movie_link) {
-        $(
-          "<div class='video_wrap'>" +
-            "<iframe class='video_iframe' src='https://www.youtube.com/embed/" +
-            i.movie_link.slice(-11) +
-            "' srcdoc='" +
-            "<style>" +
-            "* {" +
-            "padding: 0;" +
-            "margin: 0;" +
-            "overflow: hidden" +
-            "}" +
-            "html,body {" +
-            "height: 100%" +
-            "}" +
-            "img,span {" +
-            "position: absolute;" +
-            "width: 100%;" +
-            "top: 0;" +
-            "bottom: 0;" +
-            "margin: auto" +
-            "}" +
-            "span {" +
-            "height: 1.5em;" +
-            "text-align: center;" +
-            "font: 48px/1.5 sans-serif;" +
-            "color: white;" +
-            "text-shadow: 0 0 0.5em black" +
-            "}" +
-            "</style>" +
-            "<a href=https://www.youtube.com/embed/" +
-            i.movie_link.slice(-11) +
-            "?autoplay=1>" +
-            "<img src=https://img.youtube.com/vi/" +
-            i.movie_link.slice(-11) +
-            "/hqdefault.jpg>" +
-            "<span>▶</span>" +
-            "</a>" +
-            "' frameborder='0' allow='accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture' allowfullscreen>" +
-            "</iframe>" +
-            "</div>"
-        ).appendTo(str);
-      } else {
-        $("<div>Nothing</div>").appendTo(str);
-      }
-      str.appendTo(videoObj);
+    .each(function (d, j) {
+      const option = document.createElement("option");
+      option.value = mark + d;
+      option.textContent = d;
+      select.appendChild(option);
     });
 }
+
+// Date Format
+function formatDateString(dateStr) {
+  const date_ = new Date(dateStr);
+  const year = date_.getFullYear();
+  const month = String(date_.getMonth() + 1).padStart(2, "0");
+  const day = String(date_.getDate()).padStart(2, "0");
+  return `${year}.${month}.${day}`;
+}
+
+const tableData = {
+  tableLevel: function (data) {
+    return mark + data;
+  },
+
+  tableTitle: function (data, type, row) {
+    let MinIrUrl = `https://www.gaftalk.com/minir/#/viewer/song/${row.sha256}/0`;
+    return `<a href='${MinIrUrl}' target='_blank'>${data}</a>`;
+  },
+
+  tableScore: function (data) {
+    let scoreURL = "https://bms-score-viewer.pages.dev/view?md5=";
+    scoreURL += data;
+    if (data) {
+      return `<a href='${scoreURL}' target='_blank'>♪</a>`;
+    } else {
+      return "";
+    }
+  },
+
+  tableMovie: function (data) {
+    let movieURL = "https://www.youtube.com/watch?v=";
+    if (data) {
+      movieURL += data.slice(-11);
+      return `<a href='${movieURL}' target='_blank'>▶</a>`;
+    } else {
+      return "";
+    }
+  },
+
+  tableArtist: function (data, type, row) {
+    let artistStr = "";
+    if (row.url) {
+      artistStr = `<a href='${row.url}' target='_blank'>${data || row.url}</a>`;
+    }
+    if (row.url_pack) {
+      if (row.name_pack) {
+        artistStr += `<br />(<a href='${row.url_pack}' target='_blank'>${row.name_pack}</a>)`;
+      } else {
+        artistStr += `<br />(<a href='${row.url_pack}' target='_blank'>${row.url_pack}</a>)`;
+      }
+    } else if (row.name_pack) {
+      artistStr += `<br />(${row.name_pack})`;
+    }
+    return artistStr;
+  },
+
+  tableDate: function (data) {
+    if (data) {
+      return formatDateString(data);
+    } else {
+      return "";
+    }
+  },
+
+  // Chart Download
+  tableChart: function (data, type, row) {
+    if (row.url_diff) {
+      if (data) {
+        return `<a href='${row.url_diff}' target='_blank'>${data}</a>`;
+      } else {
+        return `<a href='${row.url_diff}'>DL</a>`;
+      }
+    } else {
+      if (data) {
+        return data;
+      } else {
+        if (languagePrefix === "ko") {
+          return "동봉";
+        } else {
+          return "同梱";
+        }
+      }
+    }
+  },
+
+  // Comment
+  tableComment: function (data, type, row) {
+    return row.comment || "";
+  },
+};
+
+const defaultColumns = [
+  {
+    title: "Level",
+    width: "1%",
+    data: "level",
+    type: "natural",
+    render: tableData.tableLevel,
+  },
+
+  {
+    title: "♪",
+    width: "1%",
+    data: "md5",
+    orderable: false,
+    searchable: false,
+    render: tableData.tableScore,
+  },
+
+  {
+    title: "▶",
+    width: "1%",
+    data: "movie_link",
+    orderable: false,
+    searchable: false,
+    render: tableData.tableMovie,
+  },
+  {
+    title: "Title<br />(LR2IR)",
+    width: "30%",
+    data: "title",
+    render: tableData.tableTitle,
+  },
+  {
+    title: "Artist<br />(BMS DL)",
+    width: "25%",
+    data: "artist",
+    render: tableData.tableArtist,
+  },
+  {
+    title: "DL",
+    width: "1%",
+    data: "name_diff",
+    className: "text-nowrap",
+    render: tableData.tableChart,
+  },
+  {
+    title: "Date",
+    width: "1%",
+    data: "date",
+    className: "text-nowrap",
+    render: tableData.tableDate,
+  },
+  {
+    title: "Comment",
+    width: "25%",
+    render: tableData.tableComment,
+  },
+];
+
